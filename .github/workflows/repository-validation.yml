@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  repository-validation:
+    name: repository-validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Baseline bootstrap check
+        run: |
+          echo "Repository validation workflow is enabled."
+          echo "Full VS-001 validation is expected from pull requests."
