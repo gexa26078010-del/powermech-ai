@@ -1,0 +1,24 @@
+{
+  "name": "powermech-ai",
+  "version": "0.0.1",
+  "description": "AI Operating System / SaaS platform for service centers",
+  "author": "PowerMech AI",
+  "private": true,
+  "license": "PROPRIETARY",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "install": "pnpm install -r",
+    "build": "pnpm --recursive --filter ./apps/api build",
+    "start": "node apps/api/dist/main.js",
+    "dev": "pnpm --filter ./apps/api dev",
+    "test": "pnpm --filter ./apps/api test",
+    "lint": "pnpm --filter ./apps/api lint",
+    "db:migrate": "node-pg-migrate up -d postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME -m ./migrations --envPath .env",
+    "db:reset": "node-pg-migrate down -d postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME -m ./migrations --envPath .env --all && pnpm db:migrate",
+    "repository:validate": "node scripts/repository-validate.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
