@@ -44,6 +44,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: VS-001 and VS-002 repository validation
+        run: pnpm repository:validate
+
       - name: Inline VS-001 repository validation
         run: |
           set -e
