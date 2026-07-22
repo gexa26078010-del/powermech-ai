@@ -1,34 +1,121 @@
 ﻿name: CI
+
 on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
 jobs:
   repository-validation:
     name: repository-validation
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.15.1
+
+      - name: Show repository state
+        run: |
+          pwd
+          git rev-parse --abbrev-ref HEAD
+          git rev-parse HEAD
+          find . -maxdepth 4 -type f | sort
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.1
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
+
       - name: Build
         run: pnpm build
+
       - name: Lint
         run: pnpm lint
+
       - name: Test
         run: pnpm test
-      - name: Repository validation
-        run: pnpm repository:validate
+
+      - name: Inline VS-001 repository validation
+        run: |
+          set -e
+
+          echo "Checking required VS-001 files..."
+
+          required_files=(
+            "README.md"
+            ".env.example"
+            "package.json"
+            "pnpm-lock.yaml"
+            "pnpm-workspace.yaml"
+            "tsconfig.json"
+            "docker-compose.yml"
+            "apps/api/src/main.ts"
+            "apps/api/src/app.module.ts"
+            "apps/api/src/config/database.config.ts"
+            "apps/api/src/db/database.module.ts"
+            "apps/api/src/db/database.provider.ts"
+            "apps/api/src/health/health.controller.ts"
+            "apps/api/src/health/health.service.ts"
+            "apps/api/src/health/health.module.ts"
+            "migrations/.gitkeep"
+            "scripts/validate-repository.js"
+            ".github/workflows/repository-validation.yml"
+            "docs/implementation/vs-001-local-runtime.md"
+            "evidence/vertical-slice/vs-001/01-baseline-and-commands.md"
+            "evidence/vertical-slice/vs-001/02-environment.md"
+            "evidence/vertical-slice/vs-001/03-postgres-and-migrations.md"
+            "evidence/vertical-slice/vs-001/04-build-tests-runtime.md"
+            "evidence/vertical-slice/vs-001/05-health-and-failure.md"
+            "evidence/vertical-slice/vs-001/06-final-gate.md"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "FAIL missing required file: $file"
+              exit 1
+            fi
+            echo "PASS required file: $file"
+          done
+
+          forbidden_paths=(
+            "evidence/vs-001"
+            "POWERMECH_AI_MASTER_AUDIT.md"
+            "POWERMECH_AI_DECISION_LOG.md"
+            "POWERMECH_AI_IMPLEMENTATION_STATUS.md"
+            "POWERMECH_AI_CTO_REVIEW_NOTES.md"
+            "apps/api/src/repair-mentor"
+            "apps/api/src/ai-gateway"
+            "apps/api/src/knowledge"
+            "apps/api/src/vision"
+            "apps/api/src/telegram"
+            "apps/api/src/n8n"
+            "apps/api/src/workspaces"
+            "apps/api/src/users"
+            "apps/api/src/vehicles"
+            "apps/api/src/repair-cases"
+          )
+
+          for forbidden in "${forbidden_paths[@]}"; do
+            if [ -e "$forbidden" ]; then
+              echo "FAIL forbidden path exists: $forbidden"
+              exit 1
+            fi
+            echo "PASS forbidden path absent: $forbidden"
+          done
+
+          if grep -qi "placeholder" pnpm-lock.yaml; then
+            echo "FAIL pnpm-lock.yaml looks like placeholder"
+            exit 1
+          fi
+
+          echo "PASS pnpm-lock.yaml is not placeholder"
+          echo "VS-001 inline repository validation passed"
