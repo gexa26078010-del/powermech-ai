@@ -17,6 +17,7 @@
     "db:migrate": "node-pg-migrate up -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
     "db:migrate:down": "node-pg-migrate down -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
     "db:reset": "node-pg-migrate down -t 0 -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev && node-pg-migrate up -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
+    "db:seed:demo": "node scripts/seed-demo.js",
     "repository:validate": "node scripts/validate-repository.js"
   },
   "engines": {
@@ -32,6 +33,13 @@
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "apps/api/src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {"^.+\\.(t|j)s$": "ts-jest"},
+    "testEnvironment": "node"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

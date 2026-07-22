@@ -8,6 +8,8 @@ build/
 *.js
 *.d.ts
 !*.config.js
+!migrations/*.js
+!scripts/seed-demo.js
 
 # Environment
 .env
