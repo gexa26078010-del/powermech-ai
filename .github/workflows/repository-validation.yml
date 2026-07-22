@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   pull_request:
@@ -18,7 +18,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Baseline bootstrap check
-        run: |
-          echo "Repository validation workflow is enabled."
-          echo "Full VS-001 validation is expected from pull requests."
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Repository validation
+        run: pnpm repository:validate
