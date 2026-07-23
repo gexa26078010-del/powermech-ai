@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { DemoService } from './demo.service';
-import { DemoWorkspaceResponse } from './demo.types';
+import { DemoRepairCaseResponse, DemoWorkspaceResponse } from './demo.types';
 
 @Controller('demo')
 export class DemoController {
@@ -9,5 +9,10 @@ export class DemoController {
   @Get('workspace')
   getWorkspace(): Promise<DemoWorkspaceResponse> {
     return this.demoService.getWorkspace();
+  }
+
+  @Get('repair-case')
+  getRepairCase(): Promise<DemoRepairCaseResponse> {
+    return this.demoService.getRepairCase();
   }
 }

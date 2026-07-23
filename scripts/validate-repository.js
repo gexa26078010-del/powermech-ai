@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 const fs = require('fs');
+const path = require('path');
+
+const listFiles = (root) => {
+  if (!fs.existsSync(root)) return [];
+  return fs.readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(root, entry.name);
+    return entry.isDirectory() ? listFiles(entryPath) : [entryPath];
+  });
+};
 
 const required = [
   'README.md', '.env.example', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml',
@@ -26,10 +35,19 @@ const required = [
   'evidence/vertical-slice/vs-002/04-api-and-tests.md',
   'evidence/vertical-slice/vs-002/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-002/06-final-gate.md',
+  'migrations/1710000000000_create_vehicle_repair_case_seed_boundary.js',
+  'scripts/seed-demo-repair-case.js',
+  'docs/implementation/vs-003-vehicle-repair-case-seed.md',
+  'evidence/vertical-slice/vs-003/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-003/02-database-and-migrations.md',
+  'evidence/vertical-slice/vs-003/03-demo-seed.md',
+  'evidence/vertical-slice/vs-003/04-api-and-tests.md',
+  'evidence/vertical-slice/vs-003/05-ci-and-validation.md',
+  'evidence/vertical-slice/vs-003/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
-  'evidence/vs-001', 'evidence/vs-002', 'POWERMECH_AI_MASTER_AUDIT.md',
+  'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src', 'apps/api/src/repair-mentor',
   'apps/api/src/ai-gateway', 'apps/api/src/knowledge', 'apps/api/src/knowledge-service',
@@ -38,6 +56,10 @@ const forbiddenPaths = [
   'apps/api/src/telegram', 'apps/api/src/n8n', 'apps/api/src/workspaces',
   'apps/api/src/users', 'apps/api/src/auth', 'apps/api/src/vehicles',
   'apps/api/src/repair-cases', 'apps/api/src/diagnostics', 'apps/api/src/measurements',
+  'apps/api/src/diagnostic-checks', 'apps/api/src/mechanic-observations',
+  'apps/api/src/repair-steps', 'apps/api/src/parts', 'apps/api/src/inventory',
+  'apps/api/src/work-orders', 'apps/api/src/invoices', 'apps/api/src/admin',
+  'apps/api/src/analytics', 'apps/api/src/marketplace',
 ];
 
 const forbiddenDependencies = [
@@ -47,8 +69,25 @@ const forbiddenDependencies = [
   'sqlite3', 'typeorm',
 ];
 
+const forbiddenSourcePathTerms = [
+  'diagnostic', 'measurement', 'repair-mentor', 'repair_mentor', 'repairmentor',
+  'ai-gateway', 'ai_gateway', 'aigateway', 'knowledge', 'qdrant', 'embedding',
+  'vector', 'vision',
+];
+
+const forbiddenSourceSymbols = [
+  'DiagnosticsService', 'DiagnosticCheck', 'Measurement', 'MechanicObservation',
+  'RepairStep', 'RepairMentor', 'AiGateway', 'AIGateway', 'KnowledgeService',
+];
+
+const forbiddenMigrationTables = [
+  'diagnostics', 'diagnostic_checks', 'measurements', 'mechanic_observations',
+  'repair_steps', 'ai_invocations', 'knowledge_assets', 'knowledge_candidates',
+  'verified_knowledge_assets', 'parts', 'inventory', 'work_orders', 'invoices',
+];
+
 let failed = 0;
-console.log('\nVS-001 + VS-002 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -70,6 +109,32 @@ if (fs.existsSync('package.json')) {
     console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency absent: ${dependency}`);
     if (!ok) failed++;
   }
+}
+
+const sourceFiles = listFiles('apps/api/src').filter((file) => file.endsWith('.ts'));
+for (const file of sourceFiles) {
+  const sourcePath = path.relative('.', file).split(path.sep).join('/').toLowerCase();
+  const forbiddenTerm = forbiddenSourcePathTerms.find((term) => sourcePath.includes(term));
+  const pathOk = !forbiddenTerm;
+  console.log(`${pathOk ? 'PASS' : 'FAIL'} forbidden source path absent: ${sourcePath}`);
+  if (!pathOk) failed++;
+
+  const source = fs.readFileSync(file, 'utf8');
+  const symbolPattern = new RegExp(`\\b(?:class|interface|type|function)\\s+(?:${forbiddenSourceSymbols.join('|')})\\b`);
+  const symbolsOk = !symbolPattern.test(source);
+  console.log(`${symbolsOk ? 'PASS' : 'FAIL'} forbidden source symbol absent: ${sourcePath}`);
+  if (!symbolsOk) failed++;
+}
+
+const migrationSource = listFiles('migrations')
+  .filter((file) => file.endsWith('.js') || file.endsWith('.sql'))
+  .map((file) => fs.readFileSync(file, 'utf8'))
+  .join('\n');
+for (const table of forbiddenMigrationTables) {
+  const tablePattern = new RegExp(`(?:createTable\\(\\s*['\"]${table}['\"]|CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:\"?\\w+\"?\\.)?\"?${table}\"?)`, 'i');
+  const ok = !tablePattern.test(migrationSource);
+  console.log(`${ok ? 'PASS' : 'FAIL'} forbidden migration table absent: ${table}`);
+  if (!ok) failed++;
 }
 
 if (fs.existsSync('pnpm-lock.yaml')) {
