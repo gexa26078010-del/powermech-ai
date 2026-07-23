@@ -20,7 +20,8 @@
     "db:seed:workspace": "node scripts/seed-demo.js",
     "db:seed:demo": "node scripts/seed-demo-repair-case.js",
     "db:seed:diagnostics": "node scripts/seed-demo-diagnostics.js",
-    "repository:validate": "node scripts/validate-repository.js"
+    "repository:validate": "node scripts/validate-repository.js",
+    "verify:demo:e2e": "node scripts/verify-demo-e2e.js"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -12,6 +12,7 @@ build/
 !scripts/seed-demo.js
 !scripts/seed-demo-repair-case.js
 !scripts/seed-demo-diagnostics.js
+!scripts/verify-demo-e2e.js
 
 # Environment
 .env

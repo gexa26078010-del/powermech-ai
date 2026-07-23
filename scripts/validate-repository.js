@@ -73,11 +73,19 @@ const required = [
   'evidence/vertical-slice/vs-005/04-repair-mentor-api-and-tests.md',
   'evidence/vertical-slice/vs-005/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-005/06-final-gate.md',
+  'scripts/verify-demo-e2e.js',
+  'docs/implementation/vs-006-e2e-demo-runtime-verification.md',
+  'evidence/vertical-slice/vs-006/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-006/02-runtime-and-environment.md',
+  'evidence/vertical-slice/vs-006/03-migrations-and-seeds.md',
+  'evidence/vertical-slice/vs-006/04-endpoints-and-e2e.md',
+  'evidence/vertical-slice/vs-006/05-ci-and-validation.md',
+  'evidence/vertical-slice/vs-006/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
-  'evidence/vs-005',
+  'evidence/vs-005', 'evidence/vs-006',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
@@ -97,7 +105,7 @@ const forbiddenPaths = [
 
 const forbiddenDependencies = [
   '@anthropic-ai/sdk', '@nestjs/jwt', '@nestjs/passport', '@prisma/client', 'anthropic',
-  '@qdrant/js-client-rest', 'better-sqlite3', 'ioredis', 'jsonwebtoken', 'mikro-orm',
+  '@qdrant/js-client-rest', 'axios', 'better-sqlite3', 'ioredis', 'jsonwebtoken', 'mikro-orm',
   'langchain', 'llamaindex', 'mongodb', 'mongoose', 'n8n', 'openai', 'passport',
   'prisma', 'qdrant', 'redis', 'sequelize', 'sqlite3', 'typeorm',
 ];
@@ -124,7 +132,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -142,13 +150,17 @@ if (fs.existsSync('package.json')) {
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
   const requiredScripts = [
     'build', 'lint', 'test', 'repository:validate', 'db:migrate',
-    'db:seed:workspace', 'db:seed:demo', 'db:seed:diagnostics',
+    'db:seed:workspace', 'db:seed:demo', 'db:seed:diagnostics', 'verify:demo:e2e',
   ];
   for (const script of requiredScripts) {
     const ok = typeof packageJson.scripts?.[script] === 'string';
     console.log(`${ok ? 'PASS' : 'FAIL'} required package script: ${script}`);
     if (!ok) failed++;
   }
+  const e2eScriptOk =
+    packageJson.scripts?.['verify:demo:e2e'] === 'node scripts/verify-demo-e2e.js';
+  console.log(`${e2eScriptOk ? 'PASS' : 'FAIL'} exact package script: verify:demo:e2e`);
+  if (!e2eScriptOk) failed++;
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
   for (const dependency of forbiddenDependencies) {
     const ok = !(dependency in dependencies);
@@ -167,6 +179,32 @@ if (fs.existsSync('package.json')) {
     console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency family absent: ${term}`);
     if (!ok) failed++;
   }
+}
+
+if (fs.existsSync('scripts/verify-demo-e2e.js')) {
+  const e2eSource = fs.readFileSync('scripts/verify-demo-e2e.js', 'utf8');
+  const requiredE2eFragments = [
+    'http://localhost:3000',
+    '/health',
+    '/demo/workspace',
+    '/demo/repair-case',
+    '/demo/diagnostic-context',
+    '/demo/repair-mentor/invoke',
+    'deterministic_stub',
+    'repair_mentor_first_scenario_v1',
+  ];
+  for (const fragment of requiredE2eFragments) {
+    const ok = e2eSource.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} E2E verifier contract present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const urls = e2eSource.match(/https?:\/\/[^\s'"]+/g) ?? [];
+  const localOnly = urls.every((url) => url.startsWith('http://localhost:3000'));
+  console.log(`${localOnly ? 'PASS' : 'FAIL'} E2E verifier uses local HTTP only`);
+  if (!localOnly) failed++;
+  const nativeFetch = /\bfetch\s*\(/.test(e2eSource) && !/\baxios\b/i.test(e2eSource);
+  console.log(`${nativeFetch ? 'PASS' : 'FAIL'} E2E verifier uses native fetch without axios`);
+  if (!nativeFetch) failed++;
 }
 
 const allowedVs005SourceFiles = new Set([
