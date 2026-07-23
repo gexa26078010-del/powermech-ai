@@ -44,7 +44,7 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: VS-001 through VS-004 repository validation
+      - name: VS-001 through VS-005 repository validation
         run: pnpm repository:validate
 
       - name: Inline VS-001 repository validation
@@ -95,8 +95,6 @@ jobs:
             "POWERMECH_AI_DECISION_LOG.md"
             "POWERMECH_AI_IMPLEMENTATION_STATUS.md"
             "POWERMECH_AI_CTO_REVIEW_NOTES.md"
-            "apps/api/src/repair-mentor"
-            "apps/api/src/ai-gateway"
             "apps/api/src/knowledge"
             "apps/api/src/vision"
             "apps/api/src/telegram"
