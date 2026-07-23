@@ -1,7 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Pool } from 'pg';
 import { DATABASE_CONNECTION } from '../db/database.provider';
-import { DemoRepairCaseResponse, DemoWorkspaceResponse } from './demo.types';
+import {
+  DemoDiagnosticCheckResponse,
+  DemoDiagnosticContextResponse,
+  DemoRepairCaseResponse,
+  DemoWorkspaceResponse,
+} from './demo.types';
 
 interface DemoWorkspaceRow {
   slug: string;
@@ -24,6 +29,23 @@ interface DemoRepairCaseRow {
   customer_complaint: string;
   status: string;
   scenario_key: string;
+}
+
+interface DemoDiagnosticContextRow {
+  slug: string;
+  case_number: string;
+  scenario_key: string;
+  customer_complaint: string;
+  check_key: string;
+  title: string;
+  status: string;
+  result: string;
+  mechanic_note: string | null;
+  measurement_key: string | null;
+  label: string | null;
+  value_numeric: number | null;
+  value_text: string | null;
+  unit: string | null;
 }
 
 @Injectable()
@@ -85,6 +107,68 @@ export class DemoService {
       boundaries: {
         workspaceScoped: true,
         diagnosticsImplemented: false,
+        repairMentorImplemented: false,
+        sharedKnowledgeImplemented: false,
+        globalKnowledgeImplemented: false,
+      },
+    };
+  }
+
+  async getDiagnosticContext(): Promise<DemoDiagnosticContextResponse> {
+    const result = await this.pool.query<DemoDiagnosticContextRow>(
+      `SELECT w.slug, rc.case_number, rc.scenario_key, rc.customer_complaint,
+         dc.check_key, dc.title, dc.status, dc.result, dc.mechanic_note,
+         dm.measurement_key, dm.label, dm.value_numeric::double precision AS value_numeric,
+         dm.value_text, dm.unit
+       FROM workspaces w
+       JOIN repair_cases rc ON rc.workspace_id = w.id
+       JOIN diagnostic_checks dc ON dc.workspace_id = w.id AND dc.repair_case_id = rc.id
+       LEFT JOIN diagnostic_measurements dm ON dm.workspace_id = w.id
+         AND dm.repair_case_id = rc.id AND dm.diagnostic_check_id = dc.id
+       WHERE w.slug = $1 AND rc.case_number = $2 AND rc.scenario_key = $3
+       ORDER BY dc.check_key ASC, dm.measurement_key ASC NULLS LAST`,
+      ['demo-powersport-service', 'DEMO-RC-0001', 'starter_cranks_engine_no_start'],
+    );
+    const firstRow = result.rows[0];
+    if (!firstRow) throw new NotFoundException('Demo diagnostic-context seed not found');
+
+    const checksByKey = new Map<string, DemoDiagnosticCheckResponse>();
+    for (const row of result.rows) {
+      let check = checksByKey.get(row.check_key);
+      if (!check) {
+        check = {
+          checkKey: row.check_key,
+          title: row.title,
+          status: row.status,
+          result: row.result,
+          mechanicNote: row.mechanic_note,
+          measurements: [],
+        };
+        checksByKey.set(row.check_key, check);
+      }
+      if (row.measurement_key !== null && row.label !== null) {
+        check.measurements.push({
+          measurementKey: row.measurement_key,
+          label: row.label,
+          valueNumeric: row.value_numeric,
+          valueText: row.value_text,
+          unit: row.unit,
+        });
+      }
+    }
+
+    return {
+      workspace: { slug: firstRow.slug },
+      repairCase: {
+        caseNumber: firstRow.case_number,
+        scenarioKey: firstRow.scenario_key,
+        customerComplaint: firstRow.customer_complaint,
+      },
+      diagnosticChecks: [...checksByKey.values()],
+      boundaries: {
+        workspaceScoped: true,
+        repairCaseScoped: true,
+        aiImplemented: false,
         repairMentorImplemented: false,
         sharedKnowledgeImplemented: false,
         globalKnowledgeImplemented: false,

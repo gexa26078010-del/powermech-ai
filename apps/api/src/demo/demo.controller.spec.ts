@@ -47,4 +47,43 @@ describe('DemoController', () => {
     expect(Reflect.getMetadata(PATH_METADATA, DemoController.prototype.getRepairCase)).toBe('repair-case');
     expect(Reflect.getMetadata(METHOD_METADATA, DemoController.prototype.getRepairCase)).toBe(RequestMethod.GET);
   });
+
+  it('returns the workspace-scoped diagnostic-context response shape', async () => {
+    const response = {
+      workspace: { slug: 'demo-powersport-service' },
+      repairCase: {
+        caseNumber: 'DEMO-RC-0001',
+        scenarioKey: 'starter_cranks_engine_no_start',
+        customerComplaint: 'Starter cranks, engine does not start',
+      },
+      diagnosticChecks: [
+        {
+          checkKey: 'battery_voltage_static',
+          title: 'Battery voltage static check',
+          status: 'recorded',
+          result: 'pass',
+          mechanicNote: 'Static battery voltage is within acceptable demo range.',
+          measurements: [{
+            measurementKey: 'battery_voltage',
+            label: 'Battery voltage',
+            valueNumeric: 12.6,
+            valueText: null,
+            unit: 'V',
+          }],
+        },
+      ],
+      boundaries: {
+        workspaceScoped: true as const,
+        repairCaseScoped: true as const,
+        aiImplemented: false as const,
+        repairMentorImplemented: false as const,
+        sharedKnowledgeImplemented: false as const,
+        globalKnowledgeImplemented: false as const,
+      },
+    };
+    const service = { getDiagnosticContext: jest.fn().mockResolvedValue(response) } as unknown as DemoService;
+    await expect(new DemoController(service).getDiagnosticContext()).resolves.toEqual(response);
+    expect(Reflect.getMetadata(PATH_METADATA, DemoController.prototype.getDiagnosticContext)).toBe('diagnostic-context');
+    expect(Reflect.getMetadata(METHOD_METADATA, DemoController.prototype.getDiagnosticContext)).toBe(RequestMethod.GET);
+  });
 });

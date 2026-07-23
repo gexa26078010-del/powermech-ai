@@ -32,3 +32,38 @@ export interface DemoRepairCaseResponse {
     globalKnowledgeImplemented: false;
   };
 }
+
+export interface DemoDiagnosticMeasurementResponse {
+  measurementKey: string;
+  label: string;
+  valueNumeric: number | null;
+  valueText: string | null;
+  unit: string | null;
+}
+
+export interface DemoDiagnosticCheckResponse {
+  checkKey: string;
+  title: string;
+  status: string;
+  result: string;
+  mechanicNote: string | null;
+  measurements: DemoDiagnosticMeasurementResponse[];
+}
+
+export interface DemoDiagnosticContextResponse {
+  workspace: { slug: string };
+  repairCase: {
+    caseNumber: string;
+    scenarioKey: string;
+    customerComplaint: string;
+  };
+  diagnosticChecks: DemoDiagnosticCheckResponse[];
+  boundaries: {
+    workspaceScoped: true;
+    repairCaseScoped: true;
+    aiImplemented: false;
+    repairMentorImplemented: false;
+    sharedKnowledgeImplemented: false;
+    globalKnowledgeImplemented: false;
+  };
+}
