@@ -17,7 +17,8 @@
     "db:migrate": "node-pg-migrate up -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
     "db:migrate:down": "node-pg-migrate down -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
     "db:reset": "node-pg-migrate down -t 0 -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev && node-pg-migrate up -m ./migrations -d postgres://powermech_dev:dev_local_only@localhost:5432/powermech_ai_dev",
-    "db:seed:demo": "node scripts/seed-demo.js",
+    "db:seed:workspace": "node scripts/seed-demo.js",
+    "db:seed:demo": "node scripts/seed-demo-repair-case.js",
     "repository:validate": "node scripts/validate-repository.js"
   },
   "engines": {

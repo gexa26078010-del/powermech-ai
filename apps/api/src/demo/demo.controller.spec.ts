@@ -17,4 +17,34 @@ describe('DemoController', () => {
     expect(Reflect.getMetadata(PATH_METADATA, DemoController.prototype.getWorkspace)).toBe('workspace');
     expect(Reflect.getMetadata(METHOD_METADATA, DemoController.prototype.getWorkspace)).toBe(RequestMethod.GET);
   });
+
+  it('returns the workspace-scoped repair-case response shape', async () => {
+    const response = {
+      workspace: { slug: 'demo-powersport-service', name: 'Demo Powersport Service' },
+      vehicle: {
+        brand: 'Demo Powersport',
+        model: 'Demo 1000 ATV',
+        modelYear: 2024,
+        vehicleFamily: '1000cc_atv_model_family',
+        vin: 'DEMOATV1000000001',
+      },
+      repairCase: {
+        caseNumber: 'DEMO-RC-0001',
+        customerComplaint: 'Starter cranks, engine does not start',
+        status: 'open',
+        scenarioKey: 'starter_cranks_engine_no_start',
+      },
+      boundaries: {
+        workspaceScoped: true as const,
+        diagnosticsImplemented: false as const,
+        repairMentorImplemented: false as const,
+        sharedKnowledgeImplemented: false as const,
+        globalKnowledgeImplemented: false as const,
+      },
+    };
+    const service = { getRepairCase: jest.fn().mockResolvedValue(response) } as unknown as DemoService;
+    await expect(new DemoController(service).getRepairCase()).resolves.toEqual(response);
+    expect(Reflect.getMetadata(PATH_METADATA, DemoController.prototype.getRepairCase)).toBe('repair-case');
+    expect(Reflect.getMetadata(METHOD_METADATA, DemoController.prototype.getRepairCase)).toBe(RequestMethod.GET);
+  });
 });
