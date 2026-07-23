@@ -11,6 +11,7 @@ build/
 !migrations/*.js
 !scripts/seed-demo.js
 !scripts/seed-demo-repair-case.js
+!scripts/seed-demo-diagnostics.js
 
 # Environment
 .env

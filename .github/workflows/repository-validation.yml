@@ -44,7 +44,7 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: VS-001, VS-002, and VS-003 repository validation
+      - name: VS-001 through VS-004 repository validation
         run: pnpm repository:validate
 
       - name: Inline VS-001 repository validation

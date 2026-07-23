@@ -44,10 +44,20 @@ const required = [
   'evidence/vertical-slice/vs-003/04-api-and-tests.md',
   'evidence/vertical-slice/vs-003/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-003/06-final-gate.md',
+  'migrations/1720000000000_create_diagnostic_context_boundary.js',
+  'scripts/seed-demo-diagnostics.js',
+  'docs/implementation/vs-004-diagnostic-context-recording.md',
+  'evidence/vertical-slice/vs-004/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-004/02-database-and-migrations.md',
+  'evidence/vertical-slice/vs-004/03-demo-seed.md',
+  'evidence/vertical-slice/vs-004/04-api-and-tests.md',
+  'evidence/vertical-slice/vs-004/05-ci-and-validation.md',
+  'evidence/vertical-slice/vs-004/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
-  'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'POWERMECH_AI_MASTER_AUDIT.md',
+  'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
+  'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src', 'apps/api/src/repair-mentor',
   'apps/api/src/ai-gateway', 'apps/api/src/knowledge', 'apps/api/src/knowledge-service',
@@ -55,11 +65,11 @@ const forbiddenPaths = [
   'apps/api/src/embeddings', 'apps/api/src/vector-search', 'apps/api/src/vision',
   'apps/api/src/telegram', 'apps/api/src/n8n', 'apps/api/src/workspaces',
   'apps/api/src/users', 'apps/api/src/auth', 'apps/api/src/vehicles',
-  'apps/api/src/repair-cases', 'apps/api/src/diagnostics', 'apps/api/src/measurements',
-  'apps/api/src/diagnostic-checks', 'apps/api/src/mechanic-observations',
+  'apps/api/src/repair-cases', 'apps/api/src/mechanic-observations',
   'apps/api/src/repair-steps', 'apps/api/src/parts', 'apps/api/src/inventory',
   'apps/api/src/work-orders', 'apps/api/src/invoices', 'apps/api/src/admin',
-  'apps/api/src/analytics', 'apps/api/src/marketplace',
+  'apps/api/src/analytics', 'apps/api/src/marketplace', 'apps/api/src/recommendations',
+  'apps/api/src/final-diagnosis', 'apps/api/src/automated-conclusions',
 ];
 
 const forbiddenDependencies = [
@@ -70,24 +80,27 @@ const forbiddenDependencies = [
 ];
 
 const forbiddenSourcePathTerms = [
-  'diagnostic', 'measurement', 'repair-mentor', 'repair_mentor', 'repairmentor',
+  'repair-mentor', 'repair_mentor', 'repairmentor', 'repair-step', 'repair_step',
   'ai-gateway', 'ai_gateway', 'aigateway', 'knowledge', 'qdrant', 'embedding',
-  'vector', 'vision',
+  'vector', 'vision', 'recommendation', 'final-diagnosis', 'final_diagnosis',
+  'automated-conclusion', 'automated_conclusion',
 ];
 
 const forbiddenSourceSymbols = [
-  'DiagnosticsService', 'DiagnosticCheck', 'Measurement', 'MechanicObservation',
-  'RepairStep', 'RepairMentor', 'AiGateway', 'AIGateway', 'KnowledgeService',
+  'MechanicObservation', 'RepairStep', 'RepairMentor', 'AiGateway', 'AIGateway',
+  'KnowledgeService', 'RecommendationService', 'FinalDiagnosis', 'AutomatedConclusion',
 ];
 
 const forbiddenMigrationTables = [
-  'diagnostics', 'diagnostic_checks', 'measurements', 'mechanic_observations',
+  'diagnostics', 'measurements', 'mechanic_observations',
   'repair_steps', 'ai_invocations', 'knowledge_assets', 'knowledge_candidates',
-  'verified_knowledge_assets', 'parts', 'inventory', 'work_orders', 'invoices',
+  'verified_knowledge_assets', 'ai_results', 'repair_mentor_results', 'recommendations',
+  'final_diagnoses', 'automated_conclusions', 'parts', 'inventory', 'work_orders',
+  'invoices',
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 + VS-004 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -103,6 +116,15 @@ for (const forbiddenPath of forbiddenPaths) {
 
 if (fs.existsSync('package.json')) {
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  const requiredScripts = [
+    'build', 'lint', 'test', 'repository:validate', 'db:migrate',
+    'db:seed:workspace', 'db:seed:demo', 'db:seed:diagnostics',
+  ];
+  for (const script of requiredScripts) {
+    const ok = typeof packageJson.scripts?.[script] === 'string';
+    console.log(`${ok ? 'PASS' : 'FAIL'} required package script: ${script}`);
+    if (!ok) failed++;
+  }
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
   for (const dependency of forbiddenDependencies) {
     const ok = !(dependency in dependencies);
