@@ -16,6 +16,7 @@ const required = [
   'apps/api/src/config/database.config.ts', 'apps/api/src/db/database.module.ts',
   'apps/api/src/db/database.provider.ts', 'apps/api/src/health/health.controller.ts',
   'apps/api/src/health/health.service.ts', 'apps/api/src/health/health.module.ts',
+  'apps/api/src/health/health.controller.spec.ts',
   'migrations/.gitkeep', 'scripts/validate-repository.js',
   '.github/workflows/repository-validation.yml', 'docs/implementation/vs-001-local-runtime.md',
   'evidence/vertical-slice/vs-001/01-baseline-and-commands.md',
@@ -53,14 +54,34 @@ const required = [
   'evidence/vertical-slice/vs-004/04-api-and-tests.md',
   'evidence/vertical-slice/vs-004/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-004/06-final-gate.md',
+  'migrations/1730000000000_create_ai_gateway_invocation_log.js',
+  'apps/api/src/ai-gateway/ai-gateway.module.ts',
+  'apps/api/src/ai-gateway/ai-gateway.service.ts',
+  'apps/api/src/ai-gateway/ai-gateway.service.spec.ts',
+  'apps/api/src/ai-gateway/ai-gateway.types.ts',
+  'apps/api/src/ai-gateway/deterministic-stub.provider.ts',
+  'apps/api/src/repair-mentor/repair-mentor.module.ts',
+  'apps/api/src/repair-mentor/repair-mentor.controller.ts',
+  'apps/api/src/repair-mentor/repair-mentor.controller.spec.ts',
+  'apps/api/src/repair-mentor/repair-mentor.service.ts',
+  'apps/api/src/repair-mentor/repair-mentor.service.spec.ts',
+  'apps/api/src/repair-mentor/repair-mentor.types.ts',
+  'docs/implementation/vs-005-controlled-repair-mentor-invocation.md',
+  'evidence/vertical-slice/vs-005/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-005/02-database-and-migrations.md',
+  'evidence/vertical-slice/vs-005/03-ai-gateway-and-provider.md',
+  'evidence/vertical-slice/vs-005/04-repair-mentor-api-and-tests.md',
+  'evidence/vertical-slice/vs-005/05-ci-and-validation.md',
+  'evidence/vertical-slice/vs-005/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
+  'evidence/vs-005',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
-  'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src', 'apps/api/src/repair-mentor',
-  'apps/api/src/ai-gateway', 'apps/api/src/knowledge', 'apps/api/src/knowledge-service',
+  'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
+  'apps/api/src/knowledge', 'apps/api/src/knowledge-service',
   'apps/api/src/corporate-knowledge', 'apps/api/src/global-knowledge', 'apps/api/src/qdrant',
   'apps/api/src/embeddings', 'apps/api/src/vector-search', 'apps/api/src/vision',
   'apps/api/src/telegram', 'apps/api/src/n8n', 'apps/api/src/workspaces',
@@ -70,37 +91,40 @@ const forbiddenPaths = [
   'apps/api/src/work-orders', 'apps/api/src/invoices', 'apps/api/src/admin',
   'apps/api/src/analytics', 'apps/api/src/marketplace', 'apps/api/src/recommendations',
   'apps/api/src/final-diagnosis', 'apps/api/src/automated-conclusions',
+  'apps/api/src/chat-history', 'apps/api/src/assistant-threads',
+  'apps/api/src/training', 'apps/api/src/anonymization',
 ];
 
 const forbiddenDependencies = [
-  '@anthropic-ai/sdk', '@nestjs/jwt', '@nestjs/passport', '@prisma/client',
+  '@anthropic-ai/sdk', '@nestjs/jwt', '@nestjs/passport', '@prisma/client', 'anthropic',
   '@qdrant/js-client-rest', 'better-sqlite3', 'ioredis', 'jsonwebtoken', 'mikro-orm',
-  'mongodb', 'mongoose', 'n8n', 'openai', 'passport', 'prisma', 'redis', 'sequelize',
-  'sqlite3', 'typeorm',
+  'langchain', 'llamaindex', 'mongodb', 'mongoose', 'n8n', 'openai', 'passport',
+  'prisma', 'qdrant', 'redis', 'sequelize', 'sqlite3', 'typeorm',
 ];
 
 const forbiddenSourcePathTerms = [
-  'repair-mentor', 'repair_mentor', 'repairmentor', 'repair-step', 'repair_step',
-  'ai-gateway', 'ai_gateway', 'aigateway', 'knowledge', 'qdrant', 'embedding',
-  'vector', 'vision', 'recommendation', 'final-diagnosis', 'final_diagnosis',
-  'automated-conclusion', 'automated_conclusion',
+  'repair-step', 'repair_step', 'knowledge', 'qdrant', 'embedding', 'vector', 'vision',
+  'recommendation', 'final-diagnosis', 'final_diagnosis', 'automated-conclusion',
+  'automated_conclusion', 'chat-history', 'chat_history', 'assistant-thread',
+  'assistant_thread', 'training-dataset', 'training_dataset',
 ];
 
 const forbiddenSourceSymbols = [
-  'MechanicObservation', 'RepairStep', 'RepairMentor', 'AiGateway', 'AIGateway',
-  'KnowledgeService', 'RecommendationService', 'FinalDiagnosis', 'AutomatedConclusion',
+  'MechanicObservation', 'RepairStep', 'KnowledgeService', 'RecommendationService',
+  'FinalDiagnosis', 'AutomatedConclusion', 'AssistantThread', 'TrainingDataset',
 ];
 
 const forbiddenMigrationTables = [
   'diagnostics', 'measurements', 'mechanic_observations',
   'repair_steps', 'ai_invocations', 'knowledge_assets', 'knowledge_candidates',
-  'verified_knowledge_assets', 'ai_results', 'repair_mentor_results', 'recommendations',
-  'final_diagnoses', 'automated_conclusions', 'parts', 'inventory', 'work_orders',
-  'invoices',
+  'verified_knowledge_assets', 'ai_results', 'repair_mentor_results',
+  'repair_mentor_messages', 'chat_history', 'assistant_threads', 'training_examples',
+  'training_datasets', 'recommendations', 'final_diagnoses', 'automated_conclusions',
+  'parts', 'inventory', 'work_orders', 'invoices',
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 + VS-004 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -131,6 +155,41 @@ if (fs.existsSync('package.json')) {
     console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency absent: ${dependency}`);
     if (!ok) failed++;
   }
+  const forbiddenDependencyTerms = [
+    'openai', 'anthropic', 'langchain', 'llamaindex', 'qdrant',
+    'prisma', 'typeorm', 'sequelize', 'mikro-orm',
+  ];
+  for (const term of forbiddenDependencyTerms) {
+    const matches = Object.keys(dependencies).filter((dependency) =>
+      dependency.toLowerCase().includes(term),
+    );
+    const ok = matches.length === 0;
+    console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency family absent: ${term}`);
+    if (!ok) failed++;
+  }
+}
+
+const allowedVs005SourceFiles = new Set([
+  'apps/api/src/ai-gateway/ai-gateway.module.ts',
+  'apps/api/src/ai-gateway/ai-gateway.service.ts',
+  'apps/api/src/ai-gateway/ai-gateway.service.spec.ts',
+  'apps/api/src/ai-gateway/ai-gateway.types.ts',
+  'apps/api/src/ai-gateway/deterministic-stub.provider.ts',
+  'apps/api/src/repair-mentor/repair-mentor.module.ts',
+  'apps/api/src/repair-mentor/repair-mentor.controller.ts',
+  'apps/api/src/repair-mentor/repair-mentor.controller.spec.ts',
+  'apps/api/src/repair-mentor/repair-mentor.service.ts',
+  'apps/api/src/repair-mentor/repair-mentor.service.spec.ts',
+  'apps/api/src/repair-mentor/repair-mentor.types.ts',
+]);
+const actualVs005SourceFiles = [
+  ...listFiles('apps/api/src/ai-gateway'),
+  ...listFiles('apps/api/src/repair-mentor'),
+].map((file) => path.relative('.', file).split(path.sep).join('/'));
+for (const file of actualVs005SourceFiles) {
+  const ok = allowedVs005SourceFiles.has(file);
+  console.log(`${ok ? 'PASS' : 'FAIL'} exact VS-005 source file allowed: ${file}`);
+  if (!ok) failed++;
 }
 
 const sourceFiles = listFiles('apps/api/src').filter((file) => file.endsWith('.ts'));
@@ -146,6 +205,27 @@ for (const file of sourceFiles) {
   const symbolsOk = !symbolPattern.test(source);
   console.log(`${symbolsOk ? 'PASS' : 'FAIL'} forbidden source symbol absent: ${sourcePath}`);
   if (!symbolsOk) failed++;
+}
+
+const combinedSource = sourceFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+const forbiddenProviderPatterns = [
+  {
+    label: 'real provider SDK import',
+    pattern: /(?:from\s+['"](?:openai|anthropic|@anthropic-ai\/sdk|langchain|llamaindex)['"]|require\(\s*['"](?:openai|anthropic|@anthropic-ai\/sdk|langchain|llamaindex)['"]\s*\))/i,
+  },
+  {
+    label: 'real provider credential',
+    pattern: /\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_API_KEY)\b/i,
+  },
+  {
+    label: 'real provider API endpoint',
+    pattern: /api\.(?:openai|anthropic)\.com/i,
+  },
+];
+for (const { label, pattern } of forbiddenProviderPatterns) {
+  const ok = !pattern.test(combinedSource);
+  console.log(`${ok ? 'PASS' : 'FAIL'} forbidden implementation absent: ${label}`);
+  if (!ok) failed++;
 }
 
 const migrationSource = listFiles('migrations')
