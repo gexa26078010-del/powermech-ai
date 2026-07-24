@@ -27,3 +27,6 @@ The current backend demo is packaged for repeatable local use:
 ## Repository Safety
 
 Do not commit secrets, `.env` files, private governance documents, OEM strategy, commercial strategy, or confidential project notes.
+
+- [Local secret-handling runbook](docs/security/local-secret-handling-runbook.md)
+- [OpenAI key local smoke-test checklist](docs/security/openai-key-local-smoke-test-checklist.md)

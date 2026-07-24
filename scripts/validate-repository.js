@@ -121,12 +121,19 @@ const required = [
   'evidence/vertical-slice/vs-009/04-tests-and-validation.md',
   'evidence/vertical-slice/vs-009/05-security-and-secrets.md',
   'evidence/vertical-slice/vs-009/06-final-gate.md',
+  'docs/security/local-secret-handling-runbook.md',
+  'docs/security/openai-key-local-smoke-test-checklist.md',
+  'evidence/security-001/01-scope-and-boundaries.md',
+  'evidence/security-001/02-local-secret-runbook.md',
+  'evidence/security-001/03-validation-and-checks.md',
+  'evidence/security-001/04-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
   'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007', 'evidence/vs-008',
   'evidence/vs-009',
+  'evidence/security/security-001',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
@@ -173,7 +180,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 through VS-009 Repository Validation\n');
+console.log('\nVS-001 through VS-009 + SECURITY-001 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -439,6 +446,66 @@ if (fs.existsSync('.env.example')) {
   if (!documentedModel) failed++;
 }
 
+if (fs.existsSync('.gitignore')) {
+  const ignoredPaths = new Set(
+    fs.readFileSync('.gitignore', 'utf8')
+      .split(/\r?\n/)
+      .map((line) => line.trim()),
+  );
+  for (const ignoredPath of ['.env', '.env.local']) {
+    const ok = ignoredPaths.has(ignoredPath);
+    console.log(`${ok ? 'PASS' : 'FAIL'} local secret file ignored: ${ignoredPath}`);
+    if (!ok) failed++;
+  }
+}
+
+const securityDocumentationFiles = [
+  'docs/security/local-secret-handling-runbook.md',
+  'docs/security/openai-key-local-smoke-test-checklist.md',
+].filter((file) => fs.existsSync(file));
+if (securityDocumentationFiles.length === 2) {
+  const securityDocumentation = securityDocumentationFiles
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+  const requiredSecurityFragments = [
+    '[bool]$env:OPENAI_API_KEY',
+    'Remove-Item Env:OPENAI_API_KEY',
+    'git status --short',
+    'git diff --check',
+    'pnpm.cmd repository:validate',
+    'pnpm.cmd smoke:provider:openai',
+  ];
+  for (const fragment of requiredSecurityFragments) {
+    const ok = securityDocumentation.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} local secret runbook control present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const forbiddenDocumentationCommands = [
+    { label: 'direct echo of provider key', pattern: /^\s*echo\s+\$env:OPENAI_API_KEY\b/im },
+    {
+      label: 'direct Write-Host of provider key',
+      pattern: /^\s*Write-Host\s+\$env:OPENAI_API_KEY\b/im,
+    },
+    {
+      label: 'direct Write-Output of provider key',
+      pattern: /^\s*Write-Output\s+\$env:OPENAI_API_KEY\b/im,
+    },
+    {
+      label: 'standalone provider key expression',
+      pattern: /^\s*\$env:OPENAI_API_KEY\s*$/im,
+    },
+    {
+      label: 'display of local env file',
+      pattern: /^\s*Get-Content\s+(?:\.\\)?\.env\b/im,
+    },
+  ];
+  for (const { label, pattern } of forbiddenDocumentationCommands) {
+    const ok = !pattern.test(securityDocumentation);
+    console.log(`${ok ? 'PASS' : 'FAIL'} unsafe documentation example absent: ${label}`);
+    if (!ok) failed++;
+  }
+}
+
 if (fs.existsSync('migrations/1740000000000_allow_controlled_ai_provider_keys.js')) {
   const providerMigration = fs.readFileSync(
     'migrations/1740000000000_allow_controlled_ai_provider_keys.js',
@@ -459,9 +526,13 @@ const secretScanFiles = [
   'scripts/smoke-test-openai-provider.js',
   'docs/implementation/vs-009-real-provider-smoke-test.md',
   ...listFiles('evidence/vertical-slice/vs-009'),
+  ...securityDocumentationFiles,
+  ...listFiles('evidence/security-001'),
 ].filter((file) => fs.existsSync(file));
 const secretLookingPatterns = [
+  /\bsk-proj-[A-Za-z0-9_-]{10,}\b/,
   /\bsk-[A-Za-z0-9_-]{20,}\b/,
+  /\bOPENAI_API_KEY\s*=\s*['"]?sk(?:-proj)?-[A-Za-z0-9_-]*/i,
   /\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_API_KEY)\s*=\s*['"]?[A-Za-z0-9_-]{20,}/,
 ];
 for (const file of secretScanFiles) {
