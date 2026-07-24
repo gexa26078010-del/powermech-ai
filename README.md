@@ -14,6 +14,16 @@ This repository is being initialized for **VS-001: Baseline & Local Runtime**.
 - Final GO: NOT GRANTED
 - VS-002: LOCKED
 
+## Local MVP Demo
+
+The current backend demo is packaged for repeatable local use:
+
+- [Local demo runbook](docs/demo/mvp-local-demo-runbook.md)
+- [Founder and pilot narrative](docs/demo/mvp-demo-narrative.md)
+- [API response examples](docs/demo/mvp-api-examples.md)
+- [Pilot-readiness checklist](docs/demo/pilot-readiness-checklist.md)
+- [Next steps after the local demo](docs/demo/next-steps-after-local-demo.md)
+
 ## Repository Safety
 
 Do not commit secrets, `.env` files, private governance documents, OEM strategy, commercial strategy, or confidential project notes.

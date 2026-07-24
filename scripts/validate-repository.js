@@ -81,11 +81,22 @@ const required = [
   'evidence/vertical-slice/vs-006/04-endpoints-and-e2e.md',
   'evidence/vertical-slice/vs-006/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-006/06-final-gate.md',
+  'docs/demo/mvp-local-demo-runbook.md',
+  'docs/demo/mvp-demo-narrative.md',
+  'docs/demo/mvp-api-examples.md',
+  'docs/demo/pilot-readiness-checklist.md',
+  'docs/demo/next-steps-after-local-demo.md',
+  'evidence/vertical-slice/vs-007/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-007/02-demo-runbook.md',
+  'evidence/vertical-slice/vs-007/03-demo-narrative.md',
+  'evidence/vertical-slice/vs-007/04-pilot-readiness.md',
+  'evidence/vertical-slice/vs-007/05-ci-and-validation.md',
+  'evidence/vertical-slice/vs-007/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
-  'evidence/vs-005', 'evidence/vs-006',
+  'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
@@ -132,7 +143,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 + VS-007 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
