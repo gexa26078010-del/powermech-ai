@@ -1,5 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Pool } from 'pg';
+import { AiProviderSelector } from '../ai-gateway/ai-provider.selector';
 import { AiGatewayService } from '../ai-gateway/ai-gateway.service';
 import { DeterministicStubProvider } from '../ai-gateway/deterministic-stub.provider';
 import { RepairMentorService } from './repair-mentor.service';
@@ -49,7 +50,10 @@ const createService = (rows = contextRows()) => {
     .mockResolvedValueOnce({ rows })
     .mockResolvedValueOnce({ rows: [] });
   const pool = { query } as unknown as Pool;
-  const gateway = new AiGatewayService(new DeterministicStubProvider(), pool);
+  const selector = {
+    select: jest.fn().mockReturnValue(new DeterministicStubProvider()),
+  } as unknown as AiProviderSelector;
+  const gateway = new AiGatewayService(selector, pool);
   return { service: new RepairMentorService(pool, gateway), query };
 };
 
@@ -178,7 +182,10 @@ describe('RepairMentorService', () => {
       .mockResolvedValueOnce({ rows: contextRows() })
       .mockRejectedValueOnce(new Error('Invocation log unavailable'));
     const pool = { query } as unknown as Pool;
-    const gateway = new AiGatewayService(new DeterministicStubProvider(), pool);
+    const selector = {
+      select: jest.fn().mockReturnValue(new DeterministicStubProvider()),
+    } as unknown as AiProviderSelector;
+    const gateway = new AiGatewayService(selector, pool);
     const service = new RepairMentorService(pool, gateway);
 
     await expect(service.invokeDemo()).rejects.toThrow('Invocation log unavailable');
