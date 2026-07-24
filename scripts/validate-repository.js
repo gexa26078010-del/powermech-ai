@@ -127,12 +127,19 @@ const required = [
   'evidence/security-001/02-local-secret-runbook.md',
   'evidence/security-001/03-validation-and-checks.md',
   'evidence/security-001/04-final-gate.md',
+  'docs/implementation/vs-010-real-provider-live-smoke.md',
+  'evidence/vertical-slice/vs-010/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-010/02-secret-handling.md',
+  'evidence/vertical-slice/vs-010/03-live-provider-smoke.md',
+  'evidence/vertical-slice/vs-010/04-tests-and-validation.md',
+  'evidence/vertical-slice/vs-010/05-risks-and-limitations.md',
+  'evidence/vertical-slice/vs-010/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
   'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007', 'evidence/vs-008',
-  'evidence/vs-009',
+  'evidence/vs-009', 'evidence/vs-010',
   'evidence/security/security-001',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
@@ -180,7 +187,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 through VS-009 + SECURITY-001 Repository Validation\n');
+console.log('\nVS-001 through VS-010 + SECURITY-001 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -506,6 +513,67 @@ if (securityDocumentationFiles.length === 2) {
   }
 }
 
+const vs010ArtifactFiles = [
+  'docs/implementation/vs-010-real-provider-live-smoke.md',
+  ...listFiles('evidence/vertical-slice/vs-010'),
+].filter((file) => fs.existsSync(file));
+if (vs010ArtifactFiles.length === 7) {
+  const vs010Artifacts = vs010ArtifactFiles
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+  const requiredVs010Fragments = [
+    'OPENAI_API_KEY presence before smoke: yes',
+    'provider selected: openai',
+    'model: gpt-5-mini',
+    'live provider smoke: PASS',
+    'raw response stored: no',
+    'key printed: no',
+    'key committed: no',
+    'key removed after run: yes',
+    'human verification required: yes',
+    'final diagnosis provided: no',
+    'repair approval provided: no',
+  ];
+  for (const fragment of requiredVs010Fragments) {
+    const ok = vs010Artifacts.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} VS-010 safe evidence present: ${fragment}`);
+    if (!ok) failed++;
+  }
+
+  const forbiddenVs010Commands = [
+    { label: 'direct echo of provider key', pattern: /^\s*echo\s+\$env:OPENAI_API_KEY\b/im },
+    {
+      label: 'direct Write-Host of provider key',
+      pattern: /^\s*Write-Host\s+\$env:OPENAI_API_KEY\b/im,
+    },
+    {
+      label: 'standalone provider key expression',
+      pattern: /^\s*\$env:OPENAI_API_KEY\s*$/im,
+    },
+    {
+      label: 'display of local env file',
+      pattern: /^\s*Get-Content\s+(?:\.\\)?\.env\b/im,
+    },
+  ];
+  for (const { label, pattern } of forbiddenVs010Commands) {
+    const ok = !pattern.test(vs010Artifacts);
+    console.log(`${ok ? 'PASS' : 'FAIL'} VS-010 unsafe example absent: ${label}`);
+    if (!ok) failed++;
+  }
+
+  const finalGate = fs.readFileSync(
+    'evidence/vertical-slice/vs-010/06-final-gate.md',
+    'utf8',
+  );
+  const exactPendingGate =
+    /^Status: PENDING REVIEW \/ FINAL GO NOT GRANTED$/m.test(finalGate);
+  console.log(`${exactPendingGate ? 'PASS' : 'FAIL'} VS-010 final gate remains pending review`);
+  if (!exactPendingGate) failed++;
+  const noPositiveFinalGo = !/\bFINAL GO GRANTED\b/.test(finalGate);
+  console.log(`${noPositiveFinalGo ? 'PASS' : 'FAIL'} VS-010 positive Final GO absent`);
+  if (!noPositiveFinalGo) failed++;
+}
+
 if (fs.existsSync('migrations/1740000000000_allow_controlled_ai_provider_keys.js')) {
   const providerMigration = fs.readFileSync(
     'migrations/1740000000000_allow_controlled_ai_provider_keys.js',
@@ -528,6 +596,7 @@ const secretScanFiles = [
   ...listFiles('evidence/vertical-slice/vs-009'),
   ...securityDocumentationFiles,
   ...listFiles('evidence/security-001'),
+  ...vs010ArtifactFiles,
 ].filter((file) => fs.existsSync(file));
 const secretLookingPatterns = [
   /\bsk-proj-[A-Za-z0-9_-]{10,}\b/,
