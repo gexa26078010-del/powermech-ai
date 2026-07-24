@@ -134,12 +134,21 @@ const required = [
   'evidence/vertical-slice/vs-010/04-tests-and-validation.md',
   'evidence/vertical-slice/vs-010/05-risks-and-limitations.md',
   'evidence/vertical-slice/vs-010/06-final-gate.md',
+  'apps/api/src/repair-mentor/repair-mentor-output-evaluator.ts',
+  'apps/api/src/repair-mentor/repair-mentor-output-evaluator.spec.ts',
+  'docs/implementation/vs-011-controlled-provider-output-evaluation.md',
+  'evidence/vertical-slice/vs-011/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-011/02-evaluation-contract.md',
+  'evidence/vertical-slice/vs-011/03-tests-and-validation.md',
+  'evidence/vertical-slice/vs-011/04-runtime-and-provider-output.md',
+  'evidence/vertical-slice/vs-011/05-risks-and-limitations.md',
+  'evidence/vertical-slice/vs-011/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
   'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007', 'evidence/vs-008',
-  'evidence/vs-009', 'evidence/vs-010',
+  'evidence/vs-009', 'evidence/vs-010', 'evidence/vs-011',
   'evidence/security/security-001',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
@@ -187,7 +196,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 through VS-010 + SECURITY-001 Repository Validation\n');
+console.log('\nVS-001 through VS-011 + SECURITY-001 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -343,6 +352,8 @@ const allowedVs005SourceFiles = new Set([
   'apps/api/src/repair-mentor/repair-mentor.service.ts',
   'apps/api/src/repair-mentor/repair-mentor.service.spec.ts',
   'apps/api/src/repair-mentor/repair-mentor.types.ts',
+  'apps/api/src/repair-mentor/repair-mentor-output-evaluator.ts',
+  'apps/api/src/repair-mentor/repair-mentor-output-evaluator.spec.ts',
   'apps/api/src/ai-gateway/ai-provider.interface.ts',
   'apps/api/src/ai-gateway/ai-provider.selector.ts',
   'apps/api/src/ai-gateway/ai-provider.selector.spec.ts',
@@ -565,13 +576,84 @@ if (vs010ArtifactFiles.length === 7) {
     'evidence/vertical-slice/vs-010/06-final-gate.md',
     'utf8',
   );
+  const finalGoGranted = /\bFINAL GO GRANTED\b/.test(finalGate);
+  console.log(`${finalGoGranted ? 'PASS' : 'FAIL'} VS-010 final gate is granted`);
+  if (!finalGoGranted) failed++;
+}
+
+const vs011ArtifactFiles = [
+  'docs/implementation/vs-011-controlled-provider-output-evaluation.md',
+  ...listFiles('evidence/vertical-slice/vs-011'),
+].filter((file) => fs.existsSync(file));
+if (vs011ArtifactFiles.length === 7) {
+  const vs011Artifacts = vs011ArtifactFiles
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+  const requiredVs011Fragments = [
+    'Real provider output evaluation status: NOT_EVALUATED',
+    'Deterministic stub evaluation status: PASS',
+    'No provider secret is required',
+    'No raw provider response',
+    'Final diagnosis and repair approval remain unavailable',
+    'Knowledge Service',
+  ];
+  for (const fragment of requiredVs011Fragments) {
+    const ok = vs011Artifacts.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} VS-011 boundary evidence present: ${fragment}`);
+    if (!ok) failed++;
+  }
+
+  const finalGate = fs.readFileSync(
+    'evidence/vertical-slice/vs-011/06-final-gate.md',
+    'utf8',
+  );
   const exactPendingGate =
     /^Status: PENDING REVIEW \/ FINAL GO NOT GRANTED$/m.test(finalGate);
-  console.log(`${exactPendingGate ? 'PASS' : 'FAIL'} VS-010 final gate remains pending review`);
+  console.log(`${exactPendingGate ? 'PASS' : 'FAIL'} VS-011 final gate remains pending review`);
   if (!exactPendingGate) failed++;
   const noPositiveFinalGo = !/\bFINAL GO GRANTED\b/.test(finalGate);
-  console.log(`${noPositiveFinalGo ? 'PASS' : 'FAIL'} VS-010 positive Final GO absent`);
+  console.log(`${noPositiveFinalGo ? 'PASS' : 'FAIL'} VS-011 positive Final GO absent`);
   if (!noPositiveFinalGo) failed++;
+}
+
+if (fs.existsSync('apps/api/src/repair-mentor/repair-mentor-output-evaluator.ts')) {
+  const evaluatorSource = fs.readFileSync(
+    'apps/api/src/repair-mentor/repair-mentor-output-evaluator.ts',
+    'utf8',
+  );
+  const requiredEvaluatorFragments = [
+    "'PASS'",
+    "'FAIL'",
+    "'BLOCKED'",
+    "'NOT_EVALUATED'",
+    'human_verification_required',
+    'final_diagnosis_absent',
+    'repair_approval_absent',
+    'knowledge_retrieval_absent',
+    'shared_knowledge_absent',
+    'global_knowledge_absent',
+    'next_checks_bounded_actionable',
+    'certainty_claim_absent',
+    'unsafe_bypass_absent',
+    'repair_replacement_approval_absent',
+    'mechanic_judgment_preserved',
+    'scenario_boundary_preserved',
+    'human_escalation_language_present',
+  ];
+  for (const fragment of requiredEvaluatorFragments) {
+    const ok = evaluatorSource.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} VS-011 evaluator contract present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const noProviderOrEnvironmentAccess =
+    !/\bfetch\s*\(/.test(evaluatorSource) &&
+    !/api\.(?:openai|anthropic)\.com/i.test(evaluatorSource) &&
+    !/openai\.provider/i.test(evaluatorSource) &&
+    !/\bprocess\.env\b/.test(evaluatorSource);
+  console.log(
+    `${noProviderOrEnvironmentAccess ? 'PASS' : 'FAIL'} VS-011 evaluator has no provider, network, or environment access`,
+  );
+  if (!noProviderOrEnvironmentAccess) failed++;
 }
 
 if (fs.existsSync('migrations/1740000000000_allow_controlled_ai_provider_keys.js')) {
@@ -597,6 +679,7 @@ const secretScanFiles = [
   ...securityDocumentationFiles,
   ...listFiles('evidence/security-001'),
   ...vs010ArtifactFiles,
+  ...vs011ArtifactFiles,
 ].filter((file) => fs.existsSync(file));
 const secretLookingPatterns = [
   /\bsk-proj-[A-Za-z0-9_-]{10,}\b/,
