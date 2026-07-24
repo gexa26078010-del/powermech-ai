@@ -112,11 +112,21 @@ const required = [
   'evidence/db-migrate-fix/01-summary.md',
   'evidence/db-migrate-fix/02-verification.md',
   'evidence/db-migrate-fix/03-final-gate.md',
+  'scripts/smoke-test-openai-provider.js',
+  'apps/api/src/ai-gateway/smoke-test-openai-provider.spec.ts',
+  'docs/implementation/vs-009-real-provider-smoke-test.md',
+  'evidence/vertical-slice/vs-009/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-009/02-runtime-configuration.md',
+  'evidence/vertical-slice/vs-009/03-provider-smoke-test.md',
+  'evidence/vertical-slice/vs-009/04-tests-and-validation.md',
+  'evidence/vertical-slice/vs-009/05-security-and-secrets.md',
+  'evidence/vertical-slice/vs-009/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
   'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007', 'evidence/vs-008',
+  'evidence/vs-009',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
@@ -163,7 +173,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 + VS-007 + VS-008 Repository Validation\n');
+console.log('\nVS-001 through VS-009 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -192,6 +202,11 @@ if (fs.existsSync('package.json')) {
     packageJson.scripts?.['verify:demo:e2e'] === 'node scripts/verify-demo-e2e.js';
   console.log(`${e2eScriptOk ? 'PASS' : 'FAIL'} exact package script: verify:demo:e2e`);
   if (!e2eScriptOk) failed++;
+  const smokeScriptOk =
+    packageJson.scripts?.['smoke:provider:openai'] ===
+    'node scripts/smoke-test-openai-provider.js';
+  console.log(`${smokeScriptOk ? 'PASS' : 'FAIL'} exact package script: smoke:provider:openai`);
+  if (!smokeScriptOk) failed++;
   const exactMigrationScripts = {
     'db:migrate': 'node scripts/run-migrations.js up',
     'db:migrate:down': 'node scripts/run-migrations.js down',
@@ -220,6 +235,35 @@ if (fs.existsSync('package.json')) {
     console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency family absent: ${term}`);
     if (!ok) failed++;
   }
+}
+
+if (fs.existsSync('scripts/smoke-test-openai-provider.js')) {
+  const smokeSource = fs.readFileSync('scripts/smoke-test-openai-provider.js', 'utf8');
+  const requiredSmokeFragments = [
+    'process.env.OPENAI_API_KEY',
+    'process.env.AI_PROVIDER',
+    'process.env.OPENAI_MODEL',
+    'SKIPPED OpenAI provider smoke test',
+    '/demo/repair-mentor/invoke',
+    "invocation.providerKey === 'openai'",
+    'humanVerificationRequired === true',
+    'finalDiagnosisProvided === false',
+    'repairApprovalProvided === false',
+    "shell: false",
+    "stdio: 'ignore'",
+  ];
+  for (const fragment of requiredSmokeFragments) {
+    const ok = smokeSource.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} provider smoke guardrail present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const noDirectProviderCall = !/api\.(?:openai|anthropic)\.com/i.test(smokeSource);
+  console.log(`${noDirectProviderCall ? 'PASS' : 'FAIL'} provider smoke uses no direct provider endpoint`);
+  if (!noDirectProviderCall) failed++;
+  const noDirectProviderImport =
+    !/\b(?:OpenAiProvider|ClaudeProvider)\b/.test(smokeSource);
+  console.log(`${noDirectProviderImport ? 'PASS' : 'FAIL'} provider smoke imports no provider adapter`);
+  if (!noDirectProviderImport) failed++;
 }
 
 if (fs.existsSync('scripts/run-migrations.js')) {
@@ -292,6 +336,7 @@ const allowedVs005SourceFiles = new Set([
   'apps/api/src/ai-gateway/controlled-repair-mentor-output.validator.spec.ts',
   'apps/api/src/ai-gateway/openai.provider.ts',
   'apps/api/src/ai-gateway/openai.provider.spec.ts',
+  'apps/api/src/ai-gateway/smoke-test-openai-provider.spec.ts',
 ]);
 const actualVs005SourceFiles = [
   ...listFiles('apps/api/src/ai-gateway'),
@@ -411,6 +456,9 @@ const secretScanFiles = [
   ...sourceFiles,
   'docs/implementation/vs-008-controlled-ai-provider-adapter.md',
   ...listFiles('evidence/vertical-slice/vs-008'),
+  'scripts/smoke-test-openai-provider.js',
+  'docs/implementation/vs-009-real-provider-smoke-test.md',
+  ...listFiles('evidence/vertical-slice/vs-009'),
 ].filter((file) => fs.existsSync(file));
 const secretLookingPatterns = [
   /\bsk-[A-Za-z0-9_-]{20,}\b/,
