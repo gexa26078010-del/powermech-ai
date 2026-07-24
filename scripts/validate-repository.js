@@ -107,6 +107,11 @@ const required = [
   'evidence/vertical-slice/vs-008/04-tests-and-validation.md',
   'evidence/vertical-slice/vs-008/05-ci-and-runtime.md',
   'evidence/vertical-slice/vs-008/06-final-gate.md',
+  'scripts/run-migrations.js',
+  'docs/implementation/db-migrate-fix.md',
+  'evidence/db-migrate-fix/01-summary.md',
+  'evidence/db-migrate-fix/02-verification.md',
+  'evidence/db-migrate-fix/03-final-gate.md',
 ];
 
 const forbiddenPaths = [
@@ -187,6 +192,16 @@ if (fs.existsSync('package.json')) {
     packageJson.scripts?.['verify:demo:e2e'] === 'node scripts/verify-demo-e2e.js';
   console.log(`${e2eScriptOk ? 'PASS' : 'FAIL'} exact package script: verify:demo:e2e`);
   if (!e2eScriptOk) failed++;
+  const exactMigrationScripts = {
+    'db:migrate': 'node scripts/run-migrations.js up',
+    'db:migrate:down': 'node scripts/run-migrations.js down',
+    'db:reset': 'node scripts/run-migrations.js reset',
+  };
+  for (const [script, expected] of Object.entries(exactMigrationScripts)) {
+    const ok = packageJson.scripts?.[script] === expected;
+    console.log(`${ok ? 'PASS' : 'FAIL'} exact package script: ${script}`);
+    if (!ok) failed++;
+  }
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
   for (const dependency of forbiddenDependencies) {
     const ok = !(dependency in dependencies);
@@ -205,6 +220,31 @@ if (fs.existsSync('package.json')) {
     console.log(`${ok ? 'PASS' : 'FAIL'} forbidden dependency family absent: ${term}`);
     if (!ok) failed++;
   }
+}
+
+if (fs.existsSync('scripts/run-migrations.js')) {
+  const migrationRunnerSource = fs.readFileSync('scripts/run-migrations.js', 'utf8');
+  const requiredMigrationRunnerFragments = [
+    'DB_HOST',
+    'DB_PORT',
+    'DB_USER',
+    'DB_PASSWORD',
+    'DB_NAME',
+    'DATABASE_URL',
+    "require.resolve('node-pg-migrate/bin/node-pg-migrate')",
+    "shell: false",
+  ];
+  for (const fragment of requiredMigrationRunnerFragments) {
+    const ok = migrationRunnerSource.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} migration runner contract present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const noSecretOutput =
+    !/console\.(?:log|info|warn|error)\s*\([^)]*(?:databaseUrl|password)/i.test(
+      migrationRunnerSource,
+    );
+  console.log(`${noSecretOutput ? 'PASS' : 'FAIL'} migration runner does not print credentials`);
+  if (!noSecretOutput) failed++;
 }
 
 if (fs.existsSync('scripts/verify-demo-e2e.js')) {
