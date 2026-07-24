@@ -1,6 +1,15 @@
 export const DETERMINISTIC_STUB_PROVIDER_KEY = 'deterministic_stub' as const;
+export const OPENAI_PROVIDER_KEY = 'openai' as const;
+export const INVALID_CONFIGURATION_PROVIDER_KEY = 'invalid_configuration' as const;
 export const REPAIR_MENTOR_PROMPT_VERSION = 'repair_mentor_first_scenario_v1' as const;
 export const REPAIR_MENTOR_INVOCATION_TYPE = 'repair_mentor_first_scenario' as const;
+
+export type AiProviderKey =
+  | typeof DETERMINISTIC_STUB_PROVIDER_KEY
+  | typeof OPENAI_PROVIDER_KEY;
+export type AiGatewayAuditProviderKey =
+  | AiProviderKey
+  | typeof INVALID_CONFIGURATION_PROVIDER_KEY;
 
 export interface AiGatewayDiagnosticCheck {
   checkKey: string;
@@ -44,9 +53,10 @@ export interface ControlledRepairMentorOutput {
 }
 
 export interface AiGatewayInvocationSuccess {
-  providerKey: typeof DETERMINISTIC_STUB_PROVIDER_KEY;
+  providerKey: AiProviderKey;
   promptVersion: typeof REPAIR_MENTOR_PROMPT_VERSION;
   invocationType: typeof REPAIR_MENTOR_INVOCATION_TYPE;
   status: 'succeeded';
+  realProviderUsed: boolean;
   repairMentor: ControlledRepairMentorOutput;
 }

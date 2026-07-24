@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { AiGatewayProvider } from './ai-provider.interface';
 import {
   ControlledRepairMentorOutput,
+  DETERMINISTIC_STUB_PROVIDER_KEY,
   RepairMentorGatewayRequest,
 } from './ai-gateway.types';
 
 @Injectable()
-export class DeterministicStubProvider {
-  invokeRepairMentor(request: RepairMentorGatewayRequest): ControlledRepairMentorOutput {
+export class DeterministicStubProvider implements AiGatewayProvider {
+  readonly providerKey = DETERMINISTIC_STUB_PROVIDER_KEY;
+  readonly realProvider = false;
+
+  async invokeRepairMentor(
+    request: RepairMentorGatewayRequest,
+  ): Promise<ControlledRepairMentorOutput> {
     const checksByKey = new Map(request.diagnosticChecks.map((check) => [check.checkKey, check]));
     const exactIdentity =
       request.workspace.slug === 'demo-powersport-service' &&

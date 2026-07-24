@@ -92,11 +92,26 @@ const required = [
   'evidence/vertical-slice/vs-007/04-pilot-readiness.md',
   'evidence/vertical-slice/vs-007/05-ci-and-validation.md',
   'evidence/vertical-slice/vs-007/06-final-gate.md',
+  'apps/api/src/ai-gateway/ai-provider.interface.ts',
+  'apps/api/src/ai-gateway/ai-provider.selector.ts',
+  'apps/api/src/ai-gateway/ai-provider.selector.spec.ts',
+  'apps/api/src/ai-gateway/controlled-repair-mentor-output.validator.ts',
+  'apps/api/src/ai-gateway/controlled-repair-mentor-output.validator.spec.ts',
+  'apps/api/src/ai-gateway/openai.provider.ts',
+  'apps/api/src/ai-gateway/openai.provider.spec.ts',
+  'migrations/1740000000000_allow_controlled_ai_provider_keys.js',
+  'docs/implementation/vs-008-controlled-ai-provider-adapter.md',
+  'evidence/vertical-slice/vs-008/01-scope-and-boundaries.md',
+  'evidence/vertical-slice/vs-008/02-provider-architecture.md',
+  'evidence/vertical-slice/vs-008/03-configuration-and-secrets.md',
+  'evidence/vertical-slice/vs-008/04-tests-and-validation.md',
+  'evidence/vertical-slice/vs-008/05-ci-and-runtime.md',
+  'evidence/vertical-slice/vs-008/06-final-gate.md',
 ];
 
 const forbiddenPaths = [
   'evidence/vs-001', 'evidence/vs-002', 'evidence/vs-003', 'evidence/vs-004',
-  'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007',
+  'evidence/vs-005', 'evidence/vs-006', 'evidence/vs-007', 'evidence/vs-008',
   'POWERMECH_AI_MASTER_AUDIT.md',
   'POWERMECH_AI_DECISION_LOG.md', 'POWERMECH_AI_IMPLEMENTATION_STATUS.md',
   'POWERMECH_AI_CTO_REVIEW_NOTES.md', 'src',
@@ -111,7 +126,7 @@ const forbiddenPaths = [
   'apps/api/src/analytics', 'apps/api/src/marketplace', 'apps/api/src/recommendations',
   'apps/api/src/final-diagnosis', 'apps/api/src/automated-conclusions',
   'apps/api/src/chat-history', 'apps/api/src/assistant-threads',
-  'apps/api/src/training', 'apps/api/src/anonymization',
+  'apps/api/src/training', 'apps/api/src/anonymization', 'apps/api/src/frontend',
 ];
 
 const forbiddenDependencies = [
@@ -143,7 +158,7 @@ const forbiddenMigrationTables = [
 ];
 
 let failed = 0;
-console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 + VS-007 Repository Validation\n');
+console.log('\nVS-001 + VS-002 + VS-003 + VS-004 + VS-005 + VS-006 + VS-007 + VS-008 Repository Validation\n');
 
 for (const file of required) {
   const ok = fs.existsSync(file);
@@ -230,6 +245,13 @@ const allowedVs005SourceFiles = new Set([
   'apps/api/src/repair-mentor/repair-mentor.service.ts',
   'apps/api/src/repair-mentor/repair-mentor.service.spec.ts',
   'apps/api/src/repair-mentor/repair-mentor.types.ts',
+  'apps/api/src/ai-gateway/ai-provider.interface.ts',
+  'apps/api/src/ai-gateway/ai-provider.selector.ts',
+  'apps/api/src/ai-gateway/ai-provider.selector.spec.ts',
+  'apps/api/src/ai-gateway/controlled-repair-mentor-output.validator.ts',
+  'apps/api/src/ai-gateway/controlled-repair-mentor-output.validator.spec.ts',
+  'apps/api/src/ai-gateway/openai.provider.ts',
+  'apps/api/src/ai-gateway/openai.provider.spec.ts',
 ]);
 const actualVs005SourceFiles = [
   ...listFiles('apps/api/src/ai-gateway'),
@@ -263,17 +285,101 @@ const forbiddenProviderPatterns = [
     pattern: /(?:from\s+['"](?:openai|anthropic|@anthropic-ai\/sdk|langchain|llamaindex)['"]|require\(\s*['"](?:openai|anthropic|@anthropic-ai\/sdk|langchain|llamaindex)['"]\s*\))/i,
   },
   {
-    label: 'real provider credential',
-    pattern: /\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_API_KEY)\b/i,
-  },
-  {
-    label: 'real provider API endpoint',
-    pattern: /api\.(?:openai|anthropic)\.com/i,
+    label: 'Claude provider implementation',
+    pattern: /\b(?:ANTHROPIC_API_KEY|CLAUDE_API_KEY|api\.anthropic\.com)\b/i,
   },
 ];
 for (const { label, pattern } of forbiddenProviderPatterns) {
   const ok = !pattern.test(combinedSource);
   console.log(`${ok ? 'PASS' : 'FAIL'} forbidden implementation absent: ${label}`);
+  if (!ok) failed++;
+}
+
+if (fs.existsSync('apps/api/src/ai-gateway/openai.provider.ts')) {
+  const openAiSource = fs.readFileSync(
+    'apps/api/src/ai-gateway/openai.provider.ts',
+    'utf8',
+  );
+  const requiredOpenAiFragments = [
+    'https://api.openai.com/v1/responses',
+    'OPENAI_API_KEY',
+    'OPENAI_MODEL',
+    'store: false',
+    "type: 'json_schema'",
+    'strict: true',
+    'AbortController',
+  ];
+  for (const fragment of requiredOpenAiFragments) {
+    const ok = openAiSource.includes(fragment);
+    console.log(`${ok ? 'PASS' : 'FAIL'} controlled OpenAI adapter contract present: ${fragment}`);
+    if (!ok) failed++;
+  }
+  const nativeFetch =
+    /\bfetch\s*\(/.test(openAiSource) &&
+    !/\baxios\b/i.test(openAiSource) &&
+    !/(?:from\s+['"]openai['"]|require\(\s*['"]openai['"]\s*\))/i.test(openAiSource);
+  console.log(`${nativeFetch ? 'PASS' : 'FAIL'} OpenAI adapter uses native fetch without SDK`);
+  if (!nativeFetch) failed++;
+}
+
+const repairMentorSource = listFiles('apps/api/src/repair-mentor')
+  .filter((file) => file.endsWith('.ts'))
+  .map((file) => fs.readFileSync(file, 'utf8'))
+  .join('\n');
+const repairMentorProviderBypassPatterns = [
+  { label: 'native provider fetch', pattern: /\bfetch\s*\(/i },
+  { label: 'provider API endpoint', pattern: /api\.(?:openai|anthropic)\.com/i },
+  { label: 'provider credential', pattern: /\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_API_KEY)\b/i },
+  { label: 'direct OpenAI adapter import', pattern: /openai\.provider/i },
+  { label: 'direct Claude adapter', pattern: /\b(?:Anthropic|Claude)Provider\b/i },
+];
+for (const { label, pattern } of repairMentorProviderBypassPatterns) {
+  const ok = !pattern.test(repairMentorSource);
+  console.log(`${ok ? 'PASS' : 'FAIL'} Repair Mentor provider bypass absent: ${label}`);
+  if (!ok) failed++;
+}
+
+if (fs.existsSync('.env.example')) {
+  const envExample = fs.readFileSync('.env.example', 'utf8');
+  const deterministicDefault = /^AI_PROVIDER=deterministic_stub$/m.test(envExample);
+  console.log(`${deterministicDefault ? 'PASS' : 'FAIL'} deterministic_stub is the documented default`);
+  if (!deterministicDefault) failed++;
+
+  const emptyOpenAiKey = /^OPENAI_API_KEY=$/m.test(envExample);
+  console.log(`${emptyOpenAiKey ? 'PASS' : 'FAIL'} OpenAI key example is empty`);
+  if (!emptyOpenAiKey) failed++;
+
+  const documentedModel = /^OPENAI_MODEL=[A-Za-z0-9._-]+$/m.test(envExample);
+  console.log(`${documentedModel ? 'PASS' : 'FAIL'} OpenAI model placeholder is documented`);
+  if (!documentedModel) failed++;
+}
+
+if (fs.existsSync('migrations/1740000000000_allow_controlled_ai_provider_keys.js')) {
+  const providerMigration = fs.readFileSync(
+    'migrations/1740000000000_allow_controlled_ai_provider_keys.js',
+    'utf8',
+  );
+  for (const providerKey of ['deterministic_stub', 'openai', 'invalid_configuration']) {
+    const ok = providerMigration.includes(providerKey);
+    console.log(`${ok ? 'PASS' : 'FAIL'} controlled audit provider key present: ${providerKey}`);
+    if (!ok) failed++;
+  }
+}
+
+const secretScanFiles = [
+  '.env.example',
+  ...sourceFiles,
+  'docs/implementation/vs-008-controlled-ai-provider-adapter.md',
+  ...listFiles('evidence/vertical-slice/vs-008'),
+].filter((file) => fs.existsSync(file));
+const secretLookingPatterns = [
+  /\bsk-[A-Za-z0-9_-]{20,}\b/,
+  /\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_API_KEY)\s*=\s*['"]?[A-Za-z0-9_-]{20,}/,
+];
+for (const file of secretScanFiles) {
+  const source = fs.readFileSync(file, 'utf8');
+  const ok = secretLookingPatterns.every((pattern) => !pattern.test(source));
+  console.log(`${ok ? 'PASS' : 'FAIL'} secret-looking provider value absent: ${file}`);
   if (!ok) failed++;
 }
 

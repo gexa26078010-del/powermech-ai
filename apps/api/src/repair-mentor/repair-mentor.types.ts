@@ -1,6 +1,6 @@
 import {
+  AiProviderKey,
   ControlledRepairMentorOutput,
-  DETERMINISTIC_STUB_PROVIDER_KEY,
   REPAIR_MENTOR_INVOCATION_TYPE,
   REPAIR_MENTOR_PROMPT_VERSION,
 } from '../ai-gateway/ai-gateway.types';
@@ -15,7 +15,7 @@ export interface RepairMentorInvokeResponse {
     customerComplaint: string;
   };
   invocation: {
-    providerKey: typeof DETERMINISTIC_STUB_PROVIDER_KEY;
+    providerKey: AiProviderKey;
     promptVersion: typeof REPAIR_MENTOR_PROMPT_VERSION;
     invocationType: typeof REPAIR_MENTOR_INVOCATION_TYPE;
     status: 'succeeded';
@@ -25,7 +25,7 @@ export interface RepairMentorInvokeResponse {
     workspaceScoped: true;
     repairCaseScoped: true;
     diagnosticContextUsed: true;
-    realProviderUsed: false;
+    realProviderUsed: boolean;
     knowledgeRetrievalUsed: false;
     finalDiagnosisProvided: false;
     repairApprovalProvided: false;

@@ -2,7 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Pool } from 'pg';
 import { DATABASE_CONNECTION } from '../db/database.provider';
+import { AiGatewayProvider } from './ai-provider.interface';
 import {
+  AiProviderConfigurationError,
+  AiProviderSelector,
+} from './ai-provider.selector';
+import {
+  AiGatewayAuditProviderKey,
   AiGatewayInvocationSuccess,
   AiGatewayInvocationScope,
   ControlledRepairMentorOutput,
@@ -11,10 +17,10 @@ import {
   REPAIR_MENTOR_PROMPT_VERSION,
   RepairMentorGatewayRequest,
 } from './ai-gateway.types';
-import { DeterministicStubProvider } from './deterministic-stub.provider';
+import { validateControlledRepairMentorOutput } from './controlled-repair-mentor-output.validator';
 
 const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : 'Unknown deterministic provider error.';
+  error instanceof Error ? error.message : 'Unknown AI provider error.';
 
 export class ControlledAiGatewayInvocationError extends Error {
   constructor() {
@@ -26,7 +32,7 @@ export class ControlledAiGatewayInvocationError extends Error {
 @Injectable()
 export class AiGatewayService {
   constructor(
-    private readonly deterministicStubProvider: DeterministicStubProvider,
+    private readonly providerSelector: AiProviderSelector,
     @Inject(DATABASE_CONNECTION) private readonly pool: Pool,
   ) {}
 
@@ -34,22 +40,47 @@ export class AiGatewayService {
     scope: AiGatewayInvocationScope,
     request: RepairMentorGatewayRequest,
   ): Promise<AiGatewayInvocationSuccess> {
+    let provider: AiGatewayProvider | undefined;
+    let auditProviderKey: AiGatewayAuditProviderKey =
+      DETERMINISTIC_STUB_PROVIDER_KEY;
     let repairMentor: ControlledRepairMentorOutput;
     try {
-      repairMentor = this.deterministicStubProvider.invokeRepairMentor(request);
+      provider = this.providerSelector.select();
+      auditProviderKey = provider.providerKey;
+      const providerOutput = await provider.invokeRepairMentor(request);
+      repairMentor = validateControlledRepairMentorOutput(providerOutput);
     } catch (error) {
-      await this.logInvocation(scope, request, {}, 'failed', getErrorMessage(error));
+      if (error instanceof AiProviderConfigurationError) {
+        auditProviderKey = error.providerKey;
+      }
+      await this.logInvocation(
+        scope,
+        request,
+        {},
+        auditProviderKey,
+        'failed',
+        getErrorMessage(error),
+      );
       throw new ControlledAiGatewayInvocationError();
     }
 
+    if (!provider) throw new ControlledAiGatewayInvocationError();
     const invocation: AiGatewayInvocationSuccess = {
-      providerKey: DETERMINISTIC_STUB_PROVIDER_KEY,
+      providerKey: provider.providerKey,
       promptVersion: REPAIR_MENTOR_PROMPT_VERSION,
       invocationType: REPAIR_MENTOR_INVOCATION_TYPE,
       status: 'succeeded',
+      realProviderUsed: provider.realProvider,
       repairMentor,
     };
-    await this.logInvocation(scope, request, repairMentor, invocation.status, null);
+    await this.logInvocation(
+      scope,
+      request,
+      repairMentor,
+      provider.providerKey,
+      invocation.status,
+      null,
+    );
     return invocation;
   }
 
@@ -57,6 +88,7 @@ export class AiGatewayService {
     scope: AiGatewayInvocationScope,
     requestPayload: RepairMentorGatewayRequest,
     responsePayload: ControlledRepairMentorOutput | Record<string, never>,
+    providerKey: AiGatewayAuditProviderKey,
     status: 'succeeded' | 'failed',
     errorMessage: string | null,
   ): Promise<void> {
@@ -70,7 +102,7 @@ export class AiGatewayService {
         scope.workspaceId,
         scope.repairCaseId,
         REPAIR_MENTOR_PROMPT_VERSION,
-        DETERMINISTIC_STUB_PROVIDER_KEY,
+        providerKey,
         REPAIR_MENTOR_INVOCATION_TYPE,
         requestPayload,
         responsePayload,

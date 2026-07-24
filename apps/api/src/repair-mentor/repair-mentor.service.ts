@@ -98,7 +98,7 @@ export class RepairMentorService {
         workspaceScoped: true,
         repairCaseScoped: true,
         diagnosticContextUsed: true,
-        realProviderUsed: false,
+        realProviderUsed: invocation.realProviderUsed,
         knowledgeRetrievalUsed: false,
         finalDiagnosisProvided: false,
         repairApprovalProvided: false,
