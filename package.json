@@ -21,7 +21,8 @@
     "db:seed:demo": "node scripts/seed-demo-repair-case.js",
     "db:seed:diagnostics": "node scripts/seed-demo-diagnostics.js",
     "repository:validate": "node scripts/validate-repository.js",
-    "verify:demo:e2e": "node scripts/verify-demo-e2e.js"
+    "verify:demo:e2e": "node scripts/verify-demo-e2e.js",
+    "smoke:provider:openai": "node scripts/smoke-test-openai-provider.js"
   },
   "engines": {
     "node": ">=18.0.0",
